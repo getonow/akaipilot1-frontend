@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,22 +11,94 @@ const BenchmarkPage: React.FC = () => {
   const [vendorResponse, setVendorResponse] = useState<string>('');
   const [isSearchingVendors, setIsSearchingVendors] = useState<boolean>(false);
 
-  const handleTriggerAIScan = () => {
+  const handleTriggerAIScan = async () => {
     setIsScanning(true);
-    // Simulate AI scan process
-    setTimeout(() => {
-      setAiResponse(`AI Scan Results - Generated at ${new Date().toLocaleTimeString()}\n\nPart Analysis Complete:\n- 132 In-House Part Opportunities analyzed\n- Market benchmarking completed\n- Price optimization opportunities identified\n- Supplier recommendations generated\n\nKey Findings:\n• 15% cost reduction potential identified\n• 3 alternative suppliers found with better pricing\n• Lead time improvements possible with 2 vendors\n• Quality ratings above 4.5/5 for recommended suppliers\n\nRecommendations:\n1. Consider switching to Supplier A for 20% cost savings\n2. Negotiate volume discounts with current suppliers\n3. Implement dual sourcing strategy for critical parts\n\nNext Steps:\n- Generate RFQ for top 3 suppliers\n- Schedule supplier evaluation meetings\n- Update procurement strategy based on findings`);
+    setAiResponse(''); // Clear previous output
+
+    try {
+      // Hardcoded Google Doc URL
+      const docUrl = 'https://docs.google.com/document/d/1WToYMmFn2vryeMmphkAxq5cNu-bY0cN7owVwddtRUeU/edit';
+
+      // Call your backend API
+      const response = await axios.post(
+        'http://localhost:8000/analyze/', // Change to your backend URL if different
+        new URLSearchParams({ doc_url: docUrl }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
+
+      // Format the JSON response for display
+      setAiResponse(JSON.stringify(response.data, null, 2));
+    } catch (error) {
+      setAiResponse('Error fetching AI scan results.\n' + (error?.response?.data?.error || error.message));
+    } finally {
       setIsScanning(false);
-    }, 2000);
+    }
   };
 
-  const handleTriggerVendorSearch = () => {
+  const handleTriggerVendorSearch = async () => {
     setIsSearchingVendors(true);
-    // Simulate vendor search process
-    setTimeout(() => {
-      setVendorResponse(`AI Vendor Search Results - Generated at ${new Date().toLocaleTimeString()}\n\nOut-Of-Panel Vendor Analysis:\n- 20 Out-Of-Panel Part Opportunities with new Potential Vendors identified\n- Market expansion analysis completed\n- New supplier discovery completed\n- Vendor qualification assessment generated\n\nNew Vendor Findings:\n• 25% additional cost savings potential with new vendors\n• 5 new qualified suppliers discovered\n• Improved delivery options with 3 vendors\n• Quality certifications verified for all new vendors\n\nPotential New Vendors:\n1. VendorTech Solutions - 30% cost reduction, ISO certified\n2. Global Parts Supply - Fast delivery, competitive pricing\n3. Premium Components Ltd - High quality, volume discounts\n4. Innovative Manufacturing Co - Custom solutions available\n5. Reliable Supply Chain Inc - Excellent track record\n\nNext Actions:\n- Contact new vendors for detailed quotes\n- Schedule vendor capability assessments\n- Expand approved vendor list based on findings`);
+    setVendorResponse(''); // Clear previous output
+
+    try {
+      // Call our Benchmark2 AI Agent API
+      const response = await axios.post('http://127.0.0.1:8000/run-benchmark');
+      
+      // Format the response for display
+      const data = response.data;
+      let formattedResponse = `AI Vendor Search Results - Generated at ${new Date().toLocaleTimeString()}\n\n`;
+      
+      if (data.status === 'success') {
+        formattedResponse += `✅ ${data.message}\n\n`;
+        
+        if (data.data && Array.isArray(data.data)) {
+          formattedResponse += `📊 Analysis Summary:\n`;
+          formattedResponse += `- ${data.data.length} opportunity parts analyzed\n`;
+          
+          let totalSuppliers = 0;
+          data.data.forEach((item: any) => {
+            if (item.alternative_suppliers && Array.isArray(item.alternative_suppliers)) {
+              totalSuppliers += item.alternative_suppliers.length;
+            }
+          });
+          
+          formattedResponse += `- ${totalSuppliers} potential alternative suppliers found\n\n`;
+          
+          formattedResponse += `🔍 Detailed Results:\n`;
+          formattedResponse += `==========================================\n\n`;
+          
+          data.data.forEach((item: any, index: number) => {
+            formattedResponse += `${index + 1}. Part: ${item.partname}\n`;
+            formattedResponse += `   Material: ${item.material}\n`;
+            formattedResponse += `   Current Supplier: ${item.current_supplier}\n`;
+            
+            if (item.alternative_suppliers && item.alternative_suppliers.length > 0) {
+              formattedResponse += `   Alternative Suppliers:\n`;
+              item.alternative_suppliers.forEach((supplier: any, supplierIndex: number) => {
+                formattedResponse += `     ${supplierIndex + 1}. ${supplier.name}\n`;
+                if (supplier.url) {
+                  formattedResponse += `        URL: ${supplier.url}\n`;
+                }
+              });
+            } else {
+              formattedResponse += `   Alternative Suppliers: No alternative suppliers found\n`;
+            }
+            formattedResponse += `\n`;
+          });
+        }
+      } else {
+        formattedResponse += `❌ Error: ${data.message || 'Unknown error occurred'}\n`;
+      }
+      
+      setVendorResponse(formattedResponse);
+    } catch (error: any) {
+      setVendorResponse(`Error fetching vendor search results.\n${error?.response?.data?.detail || error.message}`);
+    } finally {
       setIsSearchingVendors(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -96,4 +169,4 @@ const BenchmarkPage: React.FC = () => {
   );
 };
 
-export default BenchmarkPage;
+export default BenchmarkPage; 

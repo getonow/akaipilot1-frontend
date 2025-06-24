@@ -65,25 +65,28 @@ const BenchmarkPage: React.FC = () => {
   };
 
   const handleTriggerAIScan = async () => {
-    setLoadingParts(true);
-    setPartsError(null);
-    try {
-      const formData = new FormData();
-      formData.append('doc_url', 'https://docs.google.com/document/d/1WToYMmFn2vryeMmphkAxq5cNu-bY0cN7owVwddtRUeU/edit');
-      const response = await fetch('http://127.0.0.1:8000/analyze/', {
-        method: 'POST',
-        body: formData,
-      });
-      if (!response.ok) throw new Error('API request failed');
-      const data = await response.json();
-      setParts(data.actionablePartsList || []);
-    } catch (err: any) {
-      setPartsError(err.message || 'Unknown error');
-      setParts([]);
-    } finally {
-      setLoadingParts(false);
-    }
-  };
+  setLoadingParts(true);
+  setPartsError(null);
+  try {
+    const formData = new FormData();
+    const docUrl = 'https://docs.google.com/document/d/1WToYMmFn2vryeMmphkAxq5cNu-bY0cN7owVwddtRUeU/edit';
+    formData.append('doc_url', docUrl);
+    console.log("Sending doc_url:", docUrl);
+    const response = await fetch('http://127.0.0.1:8000/analyze/', {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) throw new Error('API request failed');
+    const data = await response.json();
+    console.log("API response:", data); // <-- Add this line
+    setParts(data.actionablePartsList || []);
+  } catch (err) {
+    setPartsError(err.message || 'Unknown error');
+    setParts([]);
+  } finally {
+    setLoadingParts(false);
+  }
+};
 
   return (
     <div className="space-y-6">

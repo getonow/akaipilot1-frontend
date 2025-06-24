@@ -69,7 +69,7 @@ const BenchmarkPage: React.FC = () => {
     setPartsError(null);
     try {
       const formData = new FormData();
-      formData.append('doc_url', 'https://docs.google.com/document/d/1WT...'); // Use your actual doc_url or make it dynamic
+      formData.append('doc_url', 'https://docs.google.com/document/d/1WToYMmFn2vryeMmphkAxq5cNu-bY0cN7owVwddtRUeU/edit');
       const response = await fetch('http://127.0.0.1:8000/analyze/', {
         method: 'POST',
         body: formData,

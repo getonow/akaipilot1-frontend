@@ -14,6 +14,9 @@ const BenchmarkPage: React.FC = () => {
   const [selectedAlternativePart, setSelectedAlternativePart] = useState<string | null>(null);
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [customPart, setCustomPart] = useState<string>('');
+  const [parts, setParts] = useState<any[]>([]);
+  const [loadingParts, setLoadingParts] = useState(false);
+  const [partsError, setPartsError] = useState<string | null>(null);
 
   const potentialVendors = [
     { id: '1', vendorName: 'TechSupply Co.', location: 'Germany', price: '$9.20', leadTime: '4 weeks', rating: '4.8/5' },
@@ -61,8 +64,25 @@ const BenchmarkPage: React.FC = () => {
     alert(`Sending RFQ to ${selectedVendors.length} selected vendors`);
   };
 
-  const handleTriggerAIScan = () => {
-    alert('Triggering manual AI scan...');
+  const handleTriggerAIScan = async () => {
+    setLoadingParts(true);
+    setPartsError(null);
+    try {
+      const formData = new FormData();
+      formData.append('doc_url', 'https://docs.google.com/document/d/1WT...'); // Use your actual doc_url or make it dynamic
+      const response = await fetch('http://127.0.0.1:8000/analyze/', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) throw new Error('API request failed');
+      const data = await response.json();
+      setParts(data.actionablePartsList || []);
+    } catch (err: any) {
+      setPartsError(err.message || 'Unknown error');
+      setParts([]);
+    } finally {
+      setLoadingParts(false);
+    }
   };
 
   return (
@@ -90,9 +110,10 @@ const BenchmarkPage: React.FC = () => {
             <Button 
               onClick={handleTriggerAIScan}
               className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
+              disabled={loadingParts}
             >
               <Search className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Trigger Manual AI Scan</span>
+              <span className="hidden sm:inline">{loadingParts ? 'Scanning...' : 'Trigger Manual AI Scan'}</span>
               <span className="sm:hidden">AI Scan</span>
             </Button>
           </div>
@@ -115,11 +136,23 @@ const BenchmarkPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className="py-8 text-center text-gray-500" colSpan={5}>
-                      Data will be populated by external service
-                    </td>
-                  </tr>
+                  {loadingParts ? (
+                    <tr><td colSpan={5} className="py-8 text-center text-gray-500">Loading...</td></tr>
+                  ) : partsError ? (
+                    <tr><td colSpan={5} className="py-8 text-center text-red-500">{partsError}</td></tr>
+                  ) : parts.length === 0 ? (
+                    <tr><td colSpan={5} className="py-8 text-center text-gray-500">Data will be populated by external service</td></tr>
+                  ) : (
+                    parts.map((part, idx) => (
+                      <tr key={idx}>
+                        <td>{part.Select}</td>
+                        <td>{part["Part Number"]}</td>
+                        <td>{part["Current Supplier"]}</td>
+                        <td>{part["Current Price"]}</td>
+                        <td>{part["% Above Index"]}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
